@@ -1,18 +1,32 @@
 package Tickit::WidgetRole::Movable;
-# ABSTRACT: 
+# ABSTRACT: resizable/movable panel mixin for Tickit widgets
 use strict;
 use warnings;
-use parent qw(Tickit::Widget);
+use parent qw(Tickit::WidgetRole);
 
 our $VERSION = '0.001';
 
 =head1 NAME
 
-Tickit::WidgetRole::Movable -
+Tickit::WidgetRole::Movable - support for resizable/movable "panels"
 
 =head1 SYNOPSIS
 
+ package Tickit::Widget::MovingThing;
+ use parent qw(Tickit::WidgetRole::Movable Tickit::Widget);
+
+ sub lines { 2 }
+ sub cols { 2 }
+ sub render {
+ }
+
 =head1 DESCRIPTION
+
+Apply this as a parent class to a widget to provide for resize/move semantics, similar to
+behaviour provided by common window managers.
+
+Expects the widget to be contained by a parent object which provides a suitable area in
+which to resize/move the widget.
 
 =cut
 
@@ -30,9 +44,36 @@ use constant {
 	SOUTHEAST => 8,
 };
 
+=head2 MIN_HEIGHT
+
+Minimum height to apply to this widget. Default is 2.
+
+=cut
+
+use constant MIN_HEIGHT => 2;
+
+=head2 MIN_WIDTH
+
+Minimum width to apply to this widget. Default is 2.
+
+=cut
+
+use constant MIN_WIDTH => 2;
+
 =head1 METHODS
 
 =cut
+
+=head2 export_subs_for
+
+Empty implementation for L<Tickit::WidgetRole> C<export_subs_for>.
+
+=cut
+
+# TODO The model used by L<Tickit::WidgetRole> doesn't seem to be a good fit here. We
+# want something closer to classical inheritance; the target widget needs to have the
+# ability to override/wrap our methods, so we don't want to inject those as subs directly.
+sub export_subs_for { +{ } }
 
 =head2 on_mouse
 
@@ -40,7 +81,17 @@ Handle mouse events.
 
 We can be in one of three states here: a mouse press, a drag event, or a release.
 
-We delegate each of these to separate methods.
+We delegate each of these to separate methods - see:
+
+=over 4
+
+=item * L</mouse_press> - first click, this is either a one-off or the start of a drag event
+
+=item * L</mouse_release> - mouse has been released, either after a click or after dragging
+
+=item * L</mouse_drag> - one or more mouse buttons are pressed and the mouse has moved
+
+=back
 
 =cut
 
@@ -230,6 +281,12 @@ sub mouse_drag {
 	}
 }
 
+=head2 move
+
+Handle ongoing move events.
+
+=cut
+
 sub move {
 	my ($self, $line, $col) = @_;
 	my $win = $self->window or return;
@@ -241,58 +298,88 @@ sub move {
 	);
 }
 
+=head2 resize_from_corner
+
+Resize action, from a corner.
+
+=cut
+
 sub resize_from_corner {
 	my ($self, $line, $col) = @_;
 	my $win = $self->window or return;
 	if($self->{corner} == SOUTHEAST) {
+		my $lines = $line + 1;
+		my $cols = $col + 1;
+		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
 		$win->change_geometry(
 			$win->top,
 			$win->left,
-			$line + 1,
-			$col + 1,
+			$lines,
+			$cols,
 		);
 	} elsif($self->{corner} == NORTHEAST) {
+		my $lines = $win->bottom - ($win->top + $line);
+		my $cols = $col + 1;
+		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
 		$win->change_geometry(
 			$win->top + $line,
 			$win->left,
-			$win->bottom - ($win->top + $line),
-			$col + 1,
+			$lines,
+			$cols,
 		);
 	} elsif($self->{corner} == NORTHWEST) {
+		my $lines = $win->bottom - ($win->top + $line);
+		my $cols = $win->right - ($win->left + $col);
+		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
 		$win->change_geometry(
 			$win->top + $line,
 			$win->left + $col,
-			$win->bottom - ($win->top + $line),
-			$win->right - ($win->left + $col),
+			$lines,
+			$cols,
 		);
 	} elsif($self->{corner} == SOUTHWEST) {
+		my $lines = $line + 1;
+		my $cols = $win->right - ($win->left + $col);
+		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
 		$win->change_geometry(
 			$win->top,
 			$win->left + $col,
-			$line + 1,
-			$win->right - ($win->left + $col),
+			$lines,
+			$cols,
 		);
 	}
 }
+
+=head2 resize_from_edge
+
+Resize action - starting from an edge.
+
+=cut
 
 sub resize_from_edge {
 	my ($self, $line, $col) = @_;
 	my $win = $self->window or return;
 	if($self->{edge} == NORTH) {
+		my $lines = $win->bottom - ($win->top + $line);
+		return unless $lines >= $self->MIN_HEIGHT;
 		$win->change_geometry(
 			$win->top + $line,
 			$win->left,
-			$win->bottom - ($win->top + $line),
+			$lines,
 			$win->cols,
 		);
 	} elsif($self->{edge} == EAST) {
+		my $cols = $col + 1;
+		return unless $cols >= $self->MIN_WIDTH;
 		$win->change_geometry(
 			$win->top,
 			$win->left,
 			$win->lines,
-			$col + 1,
+			$cols,
 		);
 	} elsif($self->{edge} == SOUTH) {
+		my $lines = $line + 1;
+		return unless $lines >= $self->MIN_HEIGHT;
 		$win->change_geometry(
 			$win->top,
 			$win->left,
@@ -300,11 +387,13 @@ sub resize_from_edge {
 			$win->cols,
 		);
 	} elsif($self->{edge} == WEST) {
+		my $cols = $win->right - ($win->left + $col),;
+		return unless $cols >= $self->MIN_WIDTH;
 		$win->change_geometry(
 			$win->top,
 			$win->left + $col,
 			$win->lines,
-			$win->right - ($win->left + $col),
+			$cols,
 		);
 	}
 }
@@ -327,6 +416,14 @@ sub mouse_release {
 __END__
 
 =head1 SEE ALSO
+
+=over 4
+
+=item * L<Tickit::Window>
+
+=item * L<Tickit::WidgetRole::Borderable>
+
+=back
 
 =head1 AUTHOR
 
