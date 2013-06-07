@@ -28,6 +28,9 @@ behaviour provided by common window managers.
 Expects the widget to be contained by a parent object which provides a suitable area in
 which to resize/move the widget.
 
+State information is stored in the C< _movable_role > hashref in C< $self >, so this requires
+instances to be blessed hashrefs.
+
 =cut
 
 use constant {
@@ -129,11 +132,6 @@ sub mouse_press {
 
 	if(my $corner = $self->position_is_corner($line, $col)) {
 		$self->start_resize_from_corner($corner);
-	} elsif($self->position_is_close($line, $col)) {
-		# Close button... probably need some way to indicate when
-		# this happens, Tickit::Window doesn't appear to have set_on_closed ?
-		$self->window->clear;
-		$self->window->close;
 	} elsif($self->position_is_title($line, $col)) {
 		$self->start_moving($line, $col);
 	} elsif(my $edge = $self->position_is_edge($line, $col)) {
@@ -196,19 +194,6 @@ sub position_is_title {
 	return 0;
 }
 
-=head2 position_is_close
-
-Returns true if this location is the close button.
-
-=cut
-
-sub position_is_close {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
-	return 1 if $line == 0 && $col == $win->cols - 2;
-	return 0;
-}
-
 =head2 start_resize_from_corner
 
 Start resizing from a corner.
@@ -219,9 +204,9 @@ sub start_resize_from_corner {
 	my $self = shift;
 	my $corner = shift;
 	my $win = $self->window or return;
-	$self->{mouse_action} = 'resize_from_corner';
-	$self->{corner} = $corner;
-	$self->{origin} = {
+	$self->{_movable_role}{mouse_action} = 'resize_from_corner';
+	$self->{_movable_role}{corner} = $corner;
+	$self->{_movable_role}{origin} = {
 		map { $_ => $win->$_ } qw(top left bottom right)
 	};
 	$win->{steal_input} = 1;
@@ -237,9 +222,9 @@ sub start_resize_from_edge {
 	my $self = shift;
 	my $edge = shift;
 	my $win = $self->window or return;
-	$self->{mouse_action} = 'resize_from_edge';
-	$self->{edge} = $edge;
-	$self->{origin} = {
+	$self->{_movable_role}{mouse_action} = 'resize_from_edge';
+	$self->{_movable_role}{edge} = $edge;
+	$self->{_movable_role}{origin} = {
 		map { $_ => $win->$_ } qw(top left bottom right)
 	};
 	$win->{steal_input} = 1;
@@ -255,8 +240,8 @@ sub start_moving {
 	my $self = shift;
 	my ($line, $col) = @_;
 	my $win = $self->window or return;
-	$self->{mouse_action} = 'move';
-	$self->{origin} = {
+	$self->{_movable_role}{mouse_action} = 'move';
+	$self->{_movable_role}{origin} = {
 		line => $line,
 		col => $col,
 	};
@@ -272,7 +257,7 @@ accordingly.
 
 sub mouse_drag {
 	my ($self, $line, $col) = @_;
-	if(my $action = $self->{mouse_action}) {
+	if(my $action = $self->{_movable_role}{mouse_action}) {
 		$self->$action($line, $col);
 	} else {
 		# Dragging one window over another is probably
@@ -290,11 +275,13 @@ Handle ongoing move events.
 sub move {
 	my ($self, $line, $col) = @_;
 	my $win = $self->window or return;
-	my $top = $win->top + ($line - $self->{origin}{line});
-	my $left = $win->left + ($col - $self->{origin}{col});
-	$win->reposition(
+	my $top = $win->top + ($line - $self->{_movable_role}{origin}{line});
+	my $left = $win->left + ($col - $self->{_movable_role}{origin}{col});
+	$self->change_geometry(
 		$top,
 		$left,
+		$win->lines,
+		$win->cols,
 	);
 }
 
@@ -307,41 +294,41 @@ Resize action, from a corner.
 sub resize_from_corner {
 	my ($self, $line, $col) = @_;
 	my $win = $self->window or return;
-	if($self->{corner} == SOUTHEAST) {
+	if($self->{_movable_role}{corner} == SOUTHEAST) {
 		my $lines = $line + 1;
 		my $cols = $col + 1;
 		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top,
 			$win->left,
 			$lines,
 			$cols,
 		);
-	} elsif($self->{corner} == NORTHEAST) {
+	} elsif($self->{_movable_role}{corner} == NORTHEAST) {
 		my $lines = $win->bottom - ($win->top + $line);
 		my $cols = $col + 1;
 		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top + $line,
 			$win->left,
 			$lines,
 			$cols,
 		);
-	} elsif($self->{corner} == NORTHWEST) {
+	} elsif($self->{_movable_role}{corner} == NORTHWEST) {
 		my $lines = $win->bottom - ($win->top + $line);
 		my $cols = $win->right - ($win->left + $col);
 		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top + $line,
 			$win->left + $col,
 			$lines,
 			$cols,
 		);
-	} elsif($self->{corner} == SOUTHWEST) {
+	} elsif($self->{_movable_role}{corner} == SOUTHWEST) {
 		my $lines = $line + 1;
 		my $cols = $win->right - ($win->left + $col);
 		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top,
 			$win->left + $col,
 			$lines,
@@ -359,37 +346,37 @@ Resize action - starting from an edge.
 sub resize_from_edge {
 	my ($self, $line, $col) = @_;
 	my $win = $self->window or return;
-	if($self->{edge} == NORTH) {
+	if($self->{_movable_role}{edge} == NORTH) {
 		my $lines = $win->bottom - ($win->top + $line);
 		return unless $lines >= $self->MIN_HEIGHT;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top + $line,
 			$win->left,
 			$lines,
 			$win->cols,
 		);
-	} elsif($self->{edge} == EAST) {
+	} elsif($self->{_movable_role}{edge} == EAST) {
 		my $cols = $col + 1;
 		return unless $cols >= $self->MIN_WIDTH;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top,
 			$win->left,
 			$win->lines,
 			$cols,
 		);
-	} elsif($self->{edge} == SOUTH) {
+	} elsif($self->{_movable_role}{edge} == SOUTH) {
 		my $lines = $line + 1;
 		return unless $lines >= $self->MIN_HEIGHT;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top,
 			$win->left,
 			$line + 1,
 			$win->cols,
 		);
-	} elsif($self->{edge} == WEST) {
+	} elsif($self->{_movable_role}{edge} == WEST) {
 		my $cols = $win->right - ($win->left + $col),;
 		return unless $cols >= $self->MIN_WIDTH;
-		$win->change_geometry(
+		$self->change_geometry(
 			$win->top,
 			$win->left + $col,
 			$win->lines,
@@ -408,7 +395,22 @@ sub mouse_release {
 	my ($self, $v) = @_;
 	my $win = $self->window or die "no window?";
 	$win->{steal_input} = 0;
-	$self->{mouse_action} = '';
+	$self->{_movable_role}{mouse_action} = '';
+}
+
+=head2 change_geometry
+
+Default action when attempting to change geometry is to proxy this
+to the L<Tickit::Window> directly. Override this in subclasses to
+implement constraints (e.g. clamp co-ordinates and pass to C< ->SUPER::change_geometry >,
+or return early without applying the action) or linked window actions
+(move/resize another window after applying the geometry change to
+this one).
+
+=cut
+
+sub change_geometry {
+	shift->window->change_geometry(@_);
 }
 
 1;
