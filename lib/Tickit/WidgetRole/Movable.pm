@@ -17,8 +17,7 @@ Tickit::WidgetRole::Movable - support for resizable/movable "panels"
 
  sub lines { 2 }
  sub cols { 2 }
- sub render {
- }
+ sub render_to_rb { ... }
 
 =head1 DESCRIPTION
 
@@ -433,5 +432,5 @@ Tom Molesworth <cpan@perlsite.co.uk>
 
 =head1 LICENSE
 
-Copyright Tom Molesworth 2012-2013. Licensed under the same terms as Perl itself.
+Copyright Tom Molesworth 2012-2014. Licensed under the same terms as Perl itself.
 
