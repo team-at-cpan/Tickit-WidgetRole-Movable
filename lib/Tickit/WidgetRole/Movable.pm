@@ -21,6 +21,8 @@ Tickit::WidgetRole::Movable - support for resizable/movable "panels"
 
 =head1 DESCRIPTION
 
+B< WARNING >: This is an early preview release. Things may change.
+
 Apply this as a parent class to a widget to provide for resize/move semantics, similar to
 behaviour provided by common window managers.
 
