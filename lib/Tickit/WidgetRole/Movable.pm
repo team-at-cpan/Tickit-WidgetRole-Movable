@@ -209,7 +209,7 @@ sub start_resize_from_corner {
 	$self->{_movable_role}{origin} = {
 		map { $_ => $win->$_ } qw(top left bottom right)
 	};
-	$win->{steal_input} = 1;
+	$win->set_steal_input(1);
 }
 
 =head2 start_resize_from_edge
@@ -227,7 +227,7 @@ sub start_resize_from_edge {
 	$self->{_movable_role}{origin} = {
 		map { $_ => $win->$_ } qw(top left bottom right)
 	};
-	$win->{steal_input} = 1;
+	$win->set_steal_input(1);
 }
 
 =head2 start_moving
@@ -245,7 +245,7 @@ sub start_moving {
 		line => $line,
 		col => $col,
 	};
-	$win->{steal_input} = 1;
+	$win->set_steal_input(1);
 }
 
 =head2 mouse_drag
@@ -394,7 +394,7 @@ On release make sure we hand back input to the previous handler.
 sub mouse_release {
 	my ($self, $v) = @_;
 	my $win = $self->window or die "no window?";
-	$win->{steal_input} = 0;
+	$win->set_steal_input(0);
 	$self->{_movable_role}{mouse_action} = '';
 }
 
