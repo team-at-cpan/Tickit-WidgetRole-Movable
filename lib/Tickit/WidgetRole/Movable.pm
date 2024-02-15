@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use parent qw(Tickit::WidgetRole);
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 =head1 NAME
 
@@ -21,8 +21,6 @@ Tickit::WidgetRole::Movable - support for resizable/movable "panels"
 
 =head1 DESCRIPTION
 
-B< WARNING >: This is an early preview release. Things may change.
-
 Apply this as a parent class to a widget to provide for resize/move semantics, similar to
 behaviour provided by common window managers.
 
@@ -35,17 +33,17 @@ instances to be blessed hashrefs.
 =cut
 
 use constant {
-	# Resizing horizontally and/or vertically
-	NORTH => 1,
-	EAST  => 2,
-	SOUTH => 3,
-	WEST  => 4,
+    # Resizing horizontally and/or vertically
+    NORTH => 1,
+    EAST  => 2,
+    SOUTH => 3,
+    WEST  => 4,
 
-	# Resizing by corner
-	NORTHWEST => 5,
-	NORTHEAST => 6,
-	SOUTHWEST => 7,
-	SOUTHEAST => 8,
+    # Resizing by corner
+    NORTHWEST => 5,
+    NORTHEAST => 6,
+    SOUTHWEST => 7,
+    SOUTHEAST => 8,
 };
 
 =head2 MIN_HEIGHT
@@ -100,12 +98,12 @@ We delegate each of these to separate methods - see:
 =cut
 
 sub on_mouse {
-	my ($self, $ev) = @_;
-	return $self->mouse_release($ev->line, $ev->col) if $ev->type eq 'release';
-	return unless $ev->button & 1;
+    my ($self, $ev) = @_;
+    return $self->mouse_release($ev->line, $ev->col) if $ev->type eq 'release';
+    return unless $ev->button & 1;
 
-	return $self->mouse_press($ev->line, $ev->col) if $ev->type eq 'press';
-	return $self->mouse_drag($ev->line, $ev->col) if $ev->type eq 'drag';
+    return $self->mouse_press($ev->line, $ev->col) if $ev->type eq 'press';
+    return $self->mouse_drag($ev->line, $ev->col) if $ev->type eq 'drag';
 }
 
 =head2 mouse_press
@@ -127,17 +125,17 @@ We're either in:
 =cut
 
 sub mouse_press {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
+    my ($self, $line, $col) = @_;
+    my $win = $self->window or return;
 
-	if(my $corner = $self->position_is_corner($line, $col)) {
-		$self->start_resize_from_corner($corner);
-	} elsif($self->position_is_title($line, $col)) {
-		$self->start_moving($line, $col);
-	} elsif(my $edge = $self->position_is_edge($line, $col)) {
-		$self->start_resize_from_edge($edge);
-	}
-	return 1;
+    if(my $corner = $self->position_is_corner($line, $col)) {
+        $self->start_resize_from_corner($corner);
+    } elsif($self->position_is_title($line, $col)) {
+        $self->start_moving($line, $col);
+    } elsif(my $edge = $self->position_is_edge($line, $col)) {
+        $self->start_resize_from_edge($edge);
+    }
+    return 1;
 }
 
 =head2 position_is_corner
@@ -149,17 +147,17 @@ SOUTHWEST), otherwise returns false.
 =cut
 
 sub position_is_corner {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
-	if($line == 0) {
-		return NORTHWEST if $col == 0;
-		return NORTHEAST if $col == $win->cols - 1;
-		return 0;
-	}
-	return 0 unless $line == $win->lines - 1;
-	return SOUTHWEST if $col == 0;
-	return SOUTHEAST if $col == $win->cols - 1;
-	return 0;
+    my ($self, $line, $col) = @_;
+    my $win = $self->window or return;
+    if($line == 0) {
+        return NORTHWEST if $col == 0;
+        return NORTHEAST if $col == $win->cols - 1;
+        return 0;
+    }
+    return 0 unless $line == $win->lines - 1;
+    return SOUTHWEST if $col == 0;
+    return SOUTHEAST if $col == $win->cols - 1;
+    return 0;
 }
 
 =head2 position_is_corner
@@ -171,13 +169,13 @@ returns false.
 =cut
 
 sub position_is_edge {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
-	return NORTH if $line == 0;
-	return WEST if $col == 0;
-	return SOUTH if $line == $win->lines - 1;
-	return EAST if $col == $win->cols - 1;
-	return 0;
+    my ($self, $line, $col) = @_;
+    my $win = $self->window or return;
+    return NORTH if $line == 0;
+    return WEST if $col == 0;
+    return SOUTH if $line == $win->lines - 1;
+    return EAST if $col == $win->cols - 1;
+    return 0;
 }
 
 =head2 position_is_title
@@ -188,10 +186,10 @@ as "top row, apart from corners and close button), returns true.
 =cut
 
 sub position_is_title {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
-	return 1 if $line == 0 && $col > 0 && $col < ($win->cols - 2);
-	return 0;
+    my ($self, $line, $col) = @_;
+    my $win = $self->window or return;
+    return 1 if $line == 0 && $col > 0 && $col < ($win->cols - 2);
+    return 0;
 }
 
 =head2 start_resize_from_corner
@@ -201,15 +199,15 @@ Start resizing from a corner.
 =cut
 
 sub start_resize_from_corner {
-	my $self = shift;
-	my $corner = shift;
-	my $win = $self->window or return;
-	$self->{_movable_role}{mouse_action} = 'resize_from_corner';
-	$self->{_movable_role}{corner} = $corner;
-	$self->{_movable_role}{origin} = {
-		map { $_ => $win->$_ } qw(top left bottom right)
-	};
-	$win->set_steal_input(1);
+    my $self = shift;
+    my $corner = shift;
+    my $win = $self->window or return;
+    $self->{_movable_role}{mouse_action} = 'resize_from_corner';
+    $self->{_movable_role}{corner} = $corner;
+    $self->{_movable_role}{origin} = {
+        map { $_ => $win->$_ } qw(top left bottom right)
+    };
+    $win->set_steal_input(1);
 }
 
 =head2 start_resize_from_edge
@@ -219,15 +217,15 @@ Start resizing from an edge.
 =cut
 
 sub start_resize_from_edge {
-	my $self = shift;
-	my $edge = shift;
-	my $win = $self->window or return;
-	$self->{_movable_role}{mouse_action} = 'resize_from_edge';
-	$self->{_movable_role}{edge} = $edge;
-	$self->{_movable_role}{origin} = {
-		map { $_ => $win->$_ } qw(top left bottom right)
-	};
-	$win->set_steal_input(1);
+    my $self = shift;
+    my $edge = shift;
+    my $win = $self->window or return;
+    $self->{_movable_role}{mouse_action} = 'resize_from_edge';
+    $self->{_movable_role}{edge} = $edge;
+    $self->{_movable_role}{origin} = {
+        map { $_ => $win->$_ } qw(top left bottom right)
+    };
+    $win->set_steal_input(1);
 }
 
 =head2 start_moving
@@ -237,15 +235,15 @@ Start moving the window.
 =cut
 
 sub start_moving {
-	my $self = shift;
-	my ($line, $col) = @_;
-	my $win = $self->window or return;
-	$self->{_movable_role}{mouse_action} = 'move';
-	$self->{_movable_role}{origin} = {
-		line => $line,
-		col => $col,
-	};
-	$win->set_steal_input(1);
+    my $self = shift;
+    my ($line, $col) = @_;
+    my $win = $self->window or return;
+    $self->{_movable_role}{mouse_action} = 'move';
+    $self->{_movable_role}{origin} = {
+        line => $line,
+        col => $col,
+    };
+    $win->set_steal_input(1);
 }
 
 =head2 mouse_drag
@@ -256,14 +254,14 @@ accordingly.
 =cut
 
 sub mouse_drag {
-	my ($self, $line, $col) = @_;
-	if(my $action = $self->{_movable_role}{mouse_action}) {
-		$self->$action($line, $col);
-	} else {
-		# Dragging one window over another is probably
-		# going to raise this warning...
-		# die "Unknown action";
-	}
+    my ($self, $line, $col) = @_;
+    if(my $action = $self->{_movable_role}{mouse_action}) {
+        $self->$action($line, $col);
+    } else {
+        # Dragging one window over another is probably
+        # going to raise this warning...
+        # die "Unknown action";
+    }
 }
 
 =head2 move
@@ -273,16 +271,16 @@ Handle ongoing move events.
 =cut
 
 sub move {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
-	my $top = $win->top + ($line - $self->{_movable_role}{origin}{line});
-	my $left = $win->left + ($col - $self->{_movable_role}{origin}{col});
-	$self->change_geometry(
-		$top,
-		$left,
-		$win->lines,
-		$win->cols,
-	);
+    my ($self, $line, $col) = @_;
+    my $win = $self->window or return;
+    my $top = $win->top + ($line - $self->{_movable_role}{origin}{line});
+    my $left = $win->left + ($col - $self->{_movable_role}{origin}{col});
+    $self->change_geometry(
+        $top,
+        $left,
+        $win->lines,
+        $win->cols,
+    );
 }
 
 =head2 resize_from_corner
@@ -292,49 +290,49 @@ Resize action, from a corner.
 =cut
 
 sub resize_from_corner {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
-	if($self->{_movable_role}{corner} == SOUTHEAST) {
-		my $lines = $line + 1;
-		my $cols = $col + 1;
-		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$self->change_geometry(
-			$win->top,
-			$win->left,
-			$lines,
-			$cols,
-		);
-	} elsif($self->{_movable_role}{corner} == NORTHEAST) {
-		my $lines = $win->bottom - ($win->top + $line);
-		my $cols = $col + 1;
-		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$self->change_geometry(
-			$win->top + $line,
-			$win->left,
-			$lines,
-			$cols,
-		);
-	} elsif($self->{_movable_role}{corner} == NORTHWEST) {
-		my $lines = $win->bottom - ($win->top + $line);
-		my $cols = $win->right - ($win->left + $col);
-		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$self->change_geometry(
-			$win->top + $line,
-			$win->left + $col,
-			$lines,
-			$cols,
-		);
-	} elsif($self->{_movable_role}{corner} == SOUTHWEST) {
-		my $lines = $line + 1;
-		my $cols = $win->right - ($win->left + $col);
-		return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
-		$self->change_geometry(
-			$win->top,
-			$win->left + $col,
-			$lines,
-			$cols,
-		);
-	}
+    my ($self, $line, $col) = @_;
+    my $win = $self->window or return;
+    if($self->{_movable_role}{corner} == SOUTHEAST) {
+        my $lines = $line + 1;
+        my $cols = $col + 1;
+        return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
+        $self->change_geometry(
+            $win->top,
+            $win->left,
+            $lines,
+            $cols,
+        );
+    } elsif($self->{_movable_role}{corner} == NORTHEAST) {
+        my $lines = $win->bottom - ($win->top + $line);
+        my $cols = $col + 1;
+        return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
+        $self->change_geometry(
+            $win->top + $line,
+            $win->left,
+            $lines,
+            $cols,
+        );
+    } elsif($self->{_movable_role}{corner} == NORTHWEST) {
+        my $lines = $win->bottom - ($win->top + $line);
+        my $cols = $win->right - ($win->left + $col);
+        return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
+        $self->change_geometry(
+            $win->top + $line,
+            $win->left + $col,
+            $lines,
+            $cols,
+        );
+    } elsif($self->{_movable_role}{corner} == SOUTHWEST) {
+        my $lines = $line + 1;
+        my $cols = $win->right - ($win->left + $col);
+        return unless $lines >= $self->MIN_HEIGHT && $cols >= $self->MIN_WIDTH;
+        $self->change_geometry(
+            $win->top,
+            $win->left + $col,
+            $lines,
+            $cols,
+        );
+    }
 }
 
 =head2 resize_from_edge
@@ -344,45 +342,45 @@ Resize action - starting from an edge.
 =cut
 
 sub resize_from_edge {
-	my ($self, $line, $col) = @_;
-	my $win = $self->window or return;
-	if($self->{_movable_role}{edge} == NORTH) {
-		my $lines = $win->bottom - ($win->top + $line);
-		return unless $lines >= $self->MIN_HEIGHT;
-		$self->change_geometry(
-			$win->top + $line,
-			$win->left,
-			$lines,
-			$win->cols,
-		);
-	} elsif($self->{_movable_role}{edge} == EAST) {
-		my $cols = $col + 1;
-		return unless $cols >= $self->MIN_WIDTH;
-		$self->change_geometry(
-			$win->top,
-			$win->left,
-			$win->lines,
-			$cols,
-		);
-	} elsif($self->{_movable_role}{edge} == SOUTH) {
-		my $lines = $line + 1;
-		return unless $lines >= $self->MIN_HEIGHT;
-		$self->change_geometry(
-			$win->top,
-			$win->left,
-			$line + 1,
-			$win->cols,
-		);
-	} elsif($self->{_movable_role}{edge} == WEST) {
-		my $cols = $win->right - ($win->left + $col),;
-		return unless $cols >= $self->MIN_WIDTH;
-		$self->change_geometry(
-			$win->top,
-			$win->left + $col,
-			$win->lines,
-			$cols,
-		);
-	}
+    my ($self, $line, $col) = @_;
+    my $win = $self->window or return;
+    if($self->{_movable_role}{edge} == NORTH) {
+        my $lines = $win->bottom - ($win->top + $line);
+        return unless $lines >= $self->MIN_HEIGHT;
+        $self->change_geometry(
+            $win->top + $line,
+            $win->left,
+            $lines,
+            $win->cols,
+        );
+    } elsif($self->{_movable_role}{edge} == EAST) {
+        my $cols = $col + 1;
+        return unless $cols >= $self->MIN_WIDTH;
+        $self->change_geometry(
+            $win->top,
+            $win->left,
+            $win->lines,
+            $cols,
+        );
+    } elsif($self->{_movable_role}{edge} == SOUTH) {
+        my $lines = $line + 1;
+        return unless $lines >= $self->MIN_HEIGHT;
+        $self->change_geometry(
+            $win->top,
+            $win->left,
+            $line + 1,
+            $win->cols,
+        );
+    } elsif($self->{_movable_role}{edge} == WEST) {
+        my $cols = $win->right - ($win->left + $col),;
+        return unless $cols >= $self->MIN_WIDTH;
+        $self->change_geometry(
+            $win->top,
+            $win->left + $col,
+            $win->lines,
+            $cols,
+        );
+    }
 }
 
 =head2 mouse_release
@@ -392,10 +390,10 @@ On release make sure we hand back input to the previous handler.
 =cut
 
 sub mouse_release {
-	my ($self, $v) = @_;
-	my $win = $self->window or die "no window?";
-	$win->set_steal_input(0);
-	$self->{_movable_role}{mouse_action} = '';
+    my ($self, $v) = @_;
+    my $win = $self->window or die "no window?";
+    $win->set_steal_input(0);
+    $self->{_movable_role}{mouse_action} = '';
 }
 
 =head2 change_geometry
@@ -410,7 +408,7 @@ this one).
 =cut
 
 sub change_geometry {
-	shift->window->change_geometry(@_);
+    shift->window->change_geometry(@_);
 }
 
 1;
