@@ -2,7 +2,8 @@ package Tickit::WidgetRole::Movable;
 # ABSTRACT: resizable/movable panel mixin for Tickit widgets
 use strict;
 use warnings;
-use parent qw(Tickit::WidgetRole);
+use Object::Pad;
+role Tickit::WidgetRole::Movable;
 
 our $VERSION = '0.004';
 
@@ -52,7 +53,7 @@ Minimum height to apply to this widget. Default is 2.
 
 =cut
 
-use constant MIN_HEIGHT => 2;
+method MIN_HEIGHT { 2 }
 
 =head2 MIN_WIDTH
 
@@ -60,7 +61,7 @@ Minimum width to apply to this widget. Default is 2.
 
 =cut
 
-use constant MIN_WIDTH => 2;
+method MIN_WIDTH { 2 }
 
 =head1 METHODS
 
@@ -75,7 +76,7 @@ Empty implementation for L<Tickit::WidgetRole> C<export_subs_for>.
 # TODO The model used by L<Tickit::WidgetRole> doesn't seem to be a good fit here. We
 # want something closer to classical inheritance; the target widget needs to have the
 # ability to override/wrap our methods, so we don't want to inject those as subs directly.
-sub export_subs_for { +{ } }
+method export_subs_for { +{ } }
 
 =head2 on_mouse
 
@@ -97,8 +98,7 @@ We delegate each of these to separate methods - see:
 
 =cut
 
-sub on_mouse {
-    my ($self, $ev) = @_;
+method on_mouse ($ev) {
     return $self->mouse_release($ev->line, $ev->col) if $ev->type eq 'release';
     return unless $ev->button & 1;
 
@@ -124,8 +124,7 @@ We're either in:
 
 =cut
 
-sub mouse_press {
-    my ($self, $line, $col) = @_;
+method mouse_press ($line, $col) {
     my $win = $self->window or return;
 
     if(my $corner = $self->position_is_corner($line, $col)) {
@@ -146,8 +145,7 @@ SOUTHWEST), otherwise returns false.
 
 =cut
 
-sub position_is_corner {
-    my ($self, $line, $col) = @_;
+method position_is_corner ($line, $col) {
     my $win = $self->window or return;
     if($line == 0) {
         return NORTHWEST if $col == 0;
@@ -168,8 +166,7 @@ returns false.
 
 =cut
 
-sub position_is_edge {
-    my ($self, $line, $col) = @_;
+method position_is_edge ($line, $col) {
     my $win = $self->window or return;
     return NORTH if $line == 0;
     return WEST if $col == 0;
@@ -185,8 +182,7 @@ as "top row, apart from corners and close button), returns true.
 
 =cut
 
-sub position_is_title {
-    my ($self, $line, $col) = @_;
+method position_is_title ($line, $col) {
     my $win = $self->window or return;
     return 1 if $line == 0 && $col > 0 && $col < ($win->cols - 2);
     return 0;
@@ -198,9 +194,7 @@ Start resizing from a corner.
 
 =cut
 
-sub start_resize_from_corner {
-    my $self = shift;
-    my $corner = shift;
+method start_resize_from_corner ($corner) {
     my $win = $self->window or return;
     $self->{_movable_role}{mouse_action} = 'resize_from_corner';
     $self->{_movable_role}{corner} = $corner;
@@ -216,9 +210,7 @@ Start resizing from an edge.
 
 =cut
 
-sub start_resize_from_edge {
-    my $self = shift;
-    my $edge = shift;
+method start_resize_from_edge ($edge) {
     my $win = $self->window or return;
     $self->{_movable_role}{mouse_action} = 'resize_from_edge';
     $self->{_movable_role}{edge} = $edge;
@@ -234,9 +226,7 @@ Start moving the window.
 
 =cut
 
-sub start_moving {
-    my $self = shift;
-    my ($line, $col) = @_;
+method start_moving ($line, $col) {
     my $win = $self->window or return;
     $self->{_movable_role}{mouse_action} = 'move';
     $self->{_movable_role}{origin} = {
@@ -253,8 +243,7 @@ accordingly.
 
 =cut
 
-sub mouse_drag {
-    my ($self, $line, $col) = @_;
+method mouse_drag ($line, $col) {
     if(my $action = $self->{_movable_role}{mouse_action}) {
         $self->$action($line, $col);
     } else {
@@ -270,8 +259,7 @@ Handle ongoing move events.
 
 =cut
 
-sub move {
-    my ($self, $line, $col) = @_;
+method move ($line, $col) {
     my $win = $self->window or return;
     my $top = $win->top + ($line - $self->{_movable_role}{origin}{line});
     my $left = $win->left + ($col - $self->{_movable_role}{origin}{col});
@@ -289,8 +277,7 @@ Resize action, from a corner.
 
 =cut
 
-sub resize_from_corner {
-    my ($self, $line, $col) = @_;
+method resize_from_corner ($line, $col) {
     my $win = $self->window or return;
     if($self->{_movable_role}{corner} == SOUTHEAST) {
         my $lines = $line + 1;
@@ -341,8 +328,7 @@ Resize action - starting from an edge.
 
 =cut
 
-sub resize_from_edge {
-    my ($self, $line, $col) = @_;
+method resize_from_edge ($line, $col) {
     my $win = $self->window or return;
     if($self->{_movable_role}{edge} == NORTH) {
         my $lines = $win->bottom - ($win->top + $line);
@@ -389,8 +375,7 @@ On release make sure we hand back input to the previous handler.
 
 =cut
 
-sub mouse_release {
-    my ($self, $v) = @_;
+method mouse_release ($row, $col) {
     my $win = $self->window or die "no window?";
     $win->set_steal_input(0);
     $self->{_movable_role}{mouse_action} = '';
@@ -407,8 +392,8 @@ this one).
 
 =cut
 
-sub change_geometry {
-    shift->window->change_geometry(@_);
+method change_geometry (@args) {
+    $self->window->change_geometry(@args);
 }
 
 1;
