@@ -127,6 +127,12 @@ We're either in:
 method mouse_press ($line, $col) {
     my $win = $self->window or return;
 
+    # Allow extra actions before we start dealing with our defaults
+    if(my $code = $self->can('before_mouse_press')) {
+        my $skip = $self->$code($line, $col);
+        return $skip if $skip;
+    }
+
     if(my $corner = $self->position_is_corner($line, $col)) {
         $self->start_resize_from_corner($corner);
     } elsif($self->position_is_title($line, $col)) {
@@ -393,6 +399,12 @@ this one).
 =cut
 
 method change_geometry (@args) {
+    # Allow extra actions before we start dealing with our defaults
+    if(my $code = $self->can('before_change_geometry')) {
+        my $skip = $self->$code(@args);
+        return $skip if $skip;
+    }
+
     $self->window->change_geometry(@args);
 }
 
