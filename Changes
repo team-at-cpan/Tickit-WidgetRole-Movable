@@ -1,6 +1,9 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+    [Bugs fixed]
+
+    - latest Tickit::Widget and Tickit::Style require Object::Pad-compatible classes
 
 0.003     2017-06-25 02:41:06+08:00 Asia/Kuala_Lumpur
     No new features
